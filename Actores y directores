@@ -1,0 +1,272 @@
+Imports System
+Imports Microsoft.Data.Sqlite
+
+Module Program
+
+    ' Nombre de archivo donde se guardará la DB (portable)
+    Private ReadOnly dbFile As String = "Plataforma_Actores_Directores.db"
+    Private ReadOnly connString As String = "Data Source=" & dbFile
+
+    Sub Main()
+        Console.WriteLine("Iniciando Plataforma de Actores y Directores DB Database...")
+        InitializeDatabase()
+        MainMenu()
+    End Sub
+
+    ' Crea tablas y datos de ejemplo (si no existen)
+    Sub InitializeDatabase()
+        Using conn As New SqliteConnection(connString)
+            conn.Open()
+
+            Using cmd = conn.CreateCommand()
+                ' Metadata (almacena el nombre "oficial" de la BD)
+                cmd.CommandText = "CREATE TABLE IF NOT EXISTS Metadata (Key TEXT PRIMARY KEY, Value TEXT);"
+                cmd.ExecuteNonQuery()
+                cmd.CommandText = "INSERT OR IGNORE INTO Metadata (Key, Value) VALUES ('DatabaseName', 'Plataforma de Actores y Directores DB Database');"
+                cmd.ExecuteNonQuery()
+
+                ' Tablas principales
+                cmd.CommandText = "
+                    CREATE TABLE IF NOT EXISTS Persons (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Nombre TEXT NOT NULL,
+                        Rol TEXT NOT NULL CHECK (Rol IN ('Actor','Director'))
+                    );"
+                cmd.ExecuteNonQuery()
+
+                cmd.CommandText = "
+                    CREATE TABLE IF NOT EXISTS Works (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Titulo TEXT NOT NULL,
+                        TipoObra TEXT NOT NULL
+                    );"
+                cmd.ExecuteNonQuery()
+
+                cmd.CommandText = "
+                    CREATE TABLE IF NOT EXISTS PersonWorks (
+                        PersonId INTEGER NOT NULL,
+                        WorkId INTEGER NOT NULL,
+                        PRIMARY KEY(PersonId, WorkId),
+                        FOREIGN KEY(PersonId) REFERENCES Persons(Id),
+                        FOREIGN KEY(WorkId) REFERENCES Works(Id)
+                    );"
+                cmd.ExecuteNonQuery()
+            End Using
+
+            ' Semilla de ejemplo (solo si Persons está vacío)
+            Using checkCmd = conn.CreateCommand()
+                checkCmd.CommandText = "SELECT COUNT(*) FROM Persons;"
+                Dim cnt = Convert.ToInt32(checkCmd.ExecuteScalar())
+                If cnt = 0 Then
+                    ' Personas (tu parte: actores y directores)
+                    InsertPerson(conn, "Leonardo DiCaprio", "Actor")
+                    InsertPerson(conn, "Christopher Nolan", "Director")
+                    InsertPerson(conn, "Meryl Streep", "Actor")
+                    InsertPerson(conn, "Steven Spielberg", "Director")
+                    InsertPerson(conn, "Guillermo del Toro", "Director")
+                    InsertPerson(conn, "Benedict Cumberbatch", "Actor")
+
+                    ' Obras (películas/series/teatro)
+                    InsertWork(conn, "Inception", "Película")
+                    InsertWork(conn, "The Iron Lady", "Película")
+                    InsertWork(conn, "Jurassic Park", "Película")
+                    InsertWork(conn, "El Laberinto del Fauno", "Película")
+                    InsertWork(conn, "Hamlet", "Teatro")
+
+                    ' Relaciones
+                    LinkPersonToWork(conn, "Leonardo DiCaprio", "Inception")
+                    LinkPersonToWork(conn, "Christopher Nolan", "Inception")
+                    LinkPersonToWork(conn, "Meryl Streep", "The Iron Lady")
+                    LinkPersonToWork(conn, "Steven Spielberg", "Jurassic Park")
+                    LinkPersonToWork(conn, "Guillermo del Toro", "El Laberinto del Fauno")
+                    LinkPersonToWork(conn, "Benedict Cumberbatch", "Hamlet")
+                End If
+            End Using
+        End Using
+    End Sub
+
+    ' Inserta persona
+    Sub InsertPerson(conn As SqliteConnection, nombre As String, rol As String)
+        Using cmd = conn.CreateCommand()
+            cmd.CommandText = "INSERT INTO Persons (Nombre, Rol) VALUES ($nombre, $rol);"
+            cmd.Parameters.AddWithValue("$nombre", nombre)
+            cmd.Parameters.AddWithValue("$rol", rol)
+            cmd.ExecuteNonQuery()
+        End Using
+    End Sub
+
+    ' Inserta obra
+    Sub InsertWork(conn As SqliteConnection, titulo As String, tipo As String)
+        Using cmd = conn.CreateCommand()
+            cmd.CommandText = "INSERT INTO Works (Titulo, TipoObra) VALUES ($titulo, $tipo);"
+            cmd.Parameters.AddWithValue("$titulo", titulo)
+            cmd.Parameters.AddWithValue("$tipo", tipo)
+            cmd.ExecuteNonQuery()
+        End Using
+    End Sub
+
+    ' Relaciona persona <-> obra por nombre (busca por igualdad ignorando mayúsculas)
+    Sub LinkPersonToWork(conn As SqliteConnection, personName As String, workTitle As String)
+        ' obtener personId
+        Dim personId As Integer = -1
+        Using cmd = conn.CreateCommand()
+            cmd.CommandText = "SELECT Id FROM Persons WHERE LOWER(Nombre) = LOWER($nombre) LIMIT 1;"
+            cmd.Parameters.AddWithValue("$nombre", personName)
+            Dim res = cmd.ExecuteScalar()
+            If res IsNot Nothing Then personId = Convert.ToInt32(res)
+        End Using
+
+        Dim workId As Integer = -1
+        Using cmd = conn.CreateCommand()
+            cmd.CommandText = "SELECT Id FROM Works WHERE LOWER(Titulo) = LOWER($titulo) LIMIT 1;"
+            cmd.Parameters.AddWithValue("$titulo", workTitle)
+            Dim res = cmd.ExecuteScalar()
+            If res IsNot Nothing Then workId = Convert.ToInt32(res)
+        End Using
+
+        If personId = -1 OrElse workId = -1 Then
+            Return
+        End If
+
+        Using cmd = conn.CreateCommand()
+            cmd.CommandText = "INSERT OR IGNORE INTO PersonWorks (PersonId, WorkId) VALUES ($pid, $wid);"
+            cmd.Parameters.AddWithValue("$pid", personId)
+            cmd.Parameters.AddWithValue("$wid", workId)
+            cmd.ExecuteNonQuery()
+        End Using
+    End Sub
+
+    (muestra obras)
+    Sub QueryByPersonName(name As String)
+        Using conn As New SqliteConnection(connString)
+            conn.Open()
+            Using cmd = conn.CreateCommand()
+                cmd.CommandText = "
+                    SELECT p.Nombre, p.Rol, w.Titulo, w.TipoObra
+                    FROM Persons p
+                    LEFT JOIN PersonWorks pw ON p.Id = pw.PersonId
+                    LEFT JOIN Works w ON w.Id = pw.WorkId
+                    WHERE LOWER(p.Nombre) LIKE '%' || LOWER($name) || '%'
+                    ORDER BY p.Nombre;"
+                cmd.Parameters.AddWithValue("$name", name)
+
+                Using rdr = cmd.ExecuteReader()
+                    Dim found As Boolean = False
+                    While rdr.Read()
+                        found = True
+                        Console.WriteLine($"{rdr.GetString(0)} - {rdr.GetString(1)} -> {If(rdr.IsDBNull(2), "(sin obras registradas)", rdr.GetString(2))} {(If(Not rdr.IsDBNull(3), "(" & rdr.GetString(3) & ")", ""))}")
+                    End While
+                    If Not found Then Console.WriteLine("No se encontraron personas con ese nombre.")
+                End Using
+            End Using
+        End Using
+    End Sub
+
+     (muestra actores/directores asociados)
+    Sub QueryByWorkTitle(title As String)
+        Using conn As New SqliteConnection(connString)
+            conn.Open()
+            Using cmd = conn.CreateCommand()
+                cmd.CommandText = "
+                    SELECT w.Titulo, w.TipoObra, p.Nombre, p.Rol
+                    FROM Works w
+                    LEFT JOIN PersonWorks pw ON w.Id = pw.WorkId
+                    LEFT JOIN Persons p ON p.Id = pw.PersonId
+                    WHERE LOWER(w.Titulo) LIKE '%' || LOWER($title) || '%'
+                    ORDER BY w.Titulo;"
+                cmd.Parameters.AddWithValue("$title", title)
+
+                Using rdr = cmd.ExecuteReader()
+                    Dim found As Boolean = False
+                    While rdr.Read()
+                        found = True
+                        Console.WriteLine($"{rdr.GetString(0)} {(If(Not rdr.IsDBNull(1), "(" & rdr.GetString(1) & ")", ""))} -> {If(rdr.IsDBNull(2), "(sin personas ligadas)", rdr.GetString(2))} {If(Not rdr.IsDBNull(3), "-" & rdr.GetString(3), "")}")
+                    End While
+                    If Not found Then Console.WriteLine("No se encontraron obras con ese título.")
+                End Using
+            End Using
+        End Using
+    End Sub
+
+    
+    Sub ListAllPersons()
+        Using conn As New SqliteConnection(connString)
+            conn.Open()
+            Using cmd = conn.CreateCommand()
+                cmd.CommandText = "SELECT Id, Nombre, Rol FROM Persons ORDER BY Nombre;"
+                Using rdr = cmd.ExecuteReader()
+                    While rdr.Read()
+                        Console.WriteLine($"{rdr.GetInt32(0)} - {rdr.GetString(1)} ({rdr.GetString(2)})")
+                    End While
+                End Using
+            End Using
+        End Using
+    End Sub
+
+    
+    Sub MainMenu()
+        While True
+            Console.WriteLine()
+            Console.WriteLine("----- Menú Plataforma Actores -----")
+            Console.WriteLine("1) Listar todos los actores/directores")
+            Console.WriteLine("2) Buscar por nombre (actores o directores)")
+            Console.WriteLine("3) Buscar por título de obra")
+            Console.WriteLine("4) Agregar persona (Actor/Director)")
+            Console.WriteLine("5) Agregar obra")
+            Console.WriteLine("6) Enlazar persona con obra")
+            Console.WriteLine("0) Salir")
+            Console.Write("Elige opción: ")
+            Dim opt = Console.ReadLine()
+            Console.WriteLine()
+
+            Select Case opt
+                Case "1"
+                    ListAllPersons()
+                Case "2"
+                    Console.Write("Nombre a buscar: ")
+                    Dim n = Console.ReadLine()
+                    QueryByPersonName(n)
+                Case "3"
+                    Console.Write("Título a buscar: ")
+                    Dim t = Console.ReadLine()
+                    QueryByWorkTitle(t)
+                Case "4"
+                    Console.Write("Nombre: ")
+                    Dim nm = Console.ReadLine()
+                    Console.Write("Rol (Actor o Director): ")
+                    Dim rl = Console.ReadLine()
+                    Using conn As New SqliteConnection(connString)
+                        conn.Open()
+                        InsertPerson(conn, nm, rl)
+                    End Using
+                    Console.WriteLine("Persona agregada.")
+                Case "5"
+                    Console.Write("Título: ")
+                    Dim tt = Console.ReadLine()
+                    Console.Write("Tipo de obra (Película, Serie, Teatro, Documental): ")
+                    Dim tp = Console.ReadLine()
+                    Using conn As New SqliteConnection(connString)
+                        conn.Open()
+                        InsertWork(conn, tt, tp)
+                    End Using
+                    Console.WriteLine("Obra agregada.")
+                Case "6"
+                    Console.Write("Nombre de la persona (exacto): ")
+                    Dim pn = Console.ReadLine()
+                    Console.Write("Título de la obra (exacto): ")
+                    Dim wt = Console.ReadLine()
+                    Using conn As New SqliteConnection(connString)
+                        conn.Open()
+                        LinkPersonToWork(conn, pn, wt)
+                    End Using
+                    Console.WriteLine("Enlace realizado (si persona y obra existían).")
+                Case "0"
+                    Console.WriteLine("Saliendo...")
+                    Return
+                Case Else
+                    Console.WriteLine("Opción no válida.")
+            End Select
+        End While
+    End Sub
+
+End Module

@@ -1,0 +1,10 @@
+CREATE TABLE Usuarios (
+    id BIGSERIAL PRIMARY KEY,
+    name_user VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    register_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_state VARCHAR(10),
+    suscription VARCHAR(30) NOT NULL,
+    profiles INT NOT NULL CHECK (profiles >= 1),
+    FOREIGN KEY (suscription) REFERENCES Suscripciones(tipo)
+);

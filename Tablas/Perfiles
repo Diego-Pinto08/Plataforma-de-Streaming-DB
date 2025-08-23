@@ -1,0 +1,6 @@
+CREATE TABLE Perfiles (
+    id BIGSERIAL PRIMARY KEY,
+    name_profile VARCHAR(255) NOT NULL,
+    user_id BIGINT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Usuarios(id)
+);

@@ -1,0 +1,4 @@
+-- Usuarios activos con email y tipo de suscripción
+select u.name_user, u.email, u.suscription
+from usuarios u
+where u.user_state = 'activo';

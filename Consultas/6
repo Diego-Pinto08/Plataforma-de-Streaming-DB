@@ -1,0 +1,6 @@
+-- Actores que han participado en películas de más de un género
+select a.name_actor, count(distinct m.genre) as generos_distintos
+from actores a
+join movies m on a.id = m.principal_actor_id
+group by a.name_actor
+having count(distinct m.genre) > 1;

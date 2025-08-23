@@ -1,9 +1,12 @@
 CREATE TABLE movies (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    director VARCHAR(255) NOT NULL,
-    principal_actor VARCHAR(255) NOT NULL,
-    genre VARCHAR(100),
-    year INT CHECK (year > 1800 AND year <= EXTRACT(YEAR FROM CURRENT_DATE)),
-    duration INT CHECK (duration > 0)
+    title text NOT NULL,
+    director text NOT NULL,
+    principal_actor text NOT NULL,
+    genre text,
+    year date,
+    duration decimal CHECK (duration > 0)
+    Foreign key (genre) references Géneros(genero),
+    Foreign key (director) references Directores(name_director),
+    Foreign key (principal_actor) references Actores(name_actor) 
 );

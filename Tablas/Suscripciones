@@ -1,5 +1,5 @@
 CREATE TABLE Suscripciones (
-    tipo VARCHAR(30) PRIMARY KEY NOT NULL,
+    tipo text PRIMARY KEY NOT NULL,
     price DECIMAL(10,2) NOT NULL,
-    descripcion VARCHAR(255) NOT NULL
+    descripcion text NOT NULL
 );

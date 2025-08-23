@@ -6,7 +6,8 @@
 Este repositorio busca emular el funcionamiento de la base de datos de una plataforma de Streaming convencional.
 
 ---
-imagen kagdjfsdaf
+
+![Diagrama_Entidad-Relacion](Imágenes/Diagrama%20Entidad-Relación.png)
 
 ---
 
@@ -19,7 +20,9 @@ imagen kagdjfsdaf
 
 ---
 
-Enlace a Supabase
+[Enlace a Supabase](https://supabase.com/dashboard/project/hrsrrncelhojmnddmjdu)
 
-### Comentarios del trabajo en equipo
+### Instrucciones para el uso de la base de datos
+
+Su uso no es complicado, con un Insert To basta para añadir nuevos datos, así mismo con el resto de comandos para modificarla. Se recomienda revisar el código para saber cuáles son los campos con la condición NOT NULL, para ahorrarse errores al insertar datos vacíos.
 

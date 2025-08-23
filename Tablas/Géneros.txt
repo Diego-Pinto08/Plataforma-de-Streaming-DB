@@ -1,0 +1,4 @@
+Create table Géneros (
+    genero text primary key not null,
+    description text not null,
+);

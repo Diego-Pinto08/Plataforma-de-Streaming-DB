@@ -1,0 +1,6 @@
+-- Películas por género
+select g.genero, count(m.id) as total_peliculas
+from géneros g
+left join movies m on m.genre = g.genero
+group by g.genero
+order by total_peliculas desc;

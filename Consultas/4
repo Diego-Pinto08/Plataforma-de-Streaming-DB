@@ -1,0 +1,7 @@
+-- Películas infantiles y de fantasía con su director y actor principal
+select m.title, d.name_director, a.name_actor, m.genre
+from movies m
+join directores d on m.director_id = d.id
+join actores a on m.principal_actor_id = a.id
+where m.genre = 'Infantil'
+   or m.genre = 'Fantasía';

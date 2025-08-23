@@ -1,0 +1,5 @@
+-- Series con más de 3 temporadas y más de 20 episodios
+select s.title, s.seasons, s.episodes
+from series s
+where s.seasons > 3 and s.episodes > 20
+order by s.seasons desc;

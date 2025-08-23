@@ -1,0 +1,17 @@
+
+create table  Actores (
+  id bigserial primary key,
+  name_actor text not null,
+  num_movies int not null check (num_movies >=0),
+  nationality text,
+  birthdate date
+);
+
+
+create table  Directores (
+  id bigserial primary key,
+  name_director text not null,
+  num_movies int,
+  nationality text,
+  birthdate date
+);

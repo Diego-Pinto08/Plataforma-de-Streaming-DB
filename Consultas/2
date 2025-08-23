@@ -1,0 +1,5 @@
+-- Perfiles de un usuario
+select p.name_profile
+from perfiles p
+join usuarios u on p.user_id = u.id
+where u.name_user = 'Diego Pinto';

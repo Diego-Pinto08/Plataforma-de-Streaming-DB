@@ -1,0 +1,6 @@
+-- Directores con sus películas y series, incluyendo género y año
+select d.name_director, m.title as pelicula, s.title as serie, coalesce(m.genre, s.genre) as genero, coalesce(m.year, s.year) as año
+from directores d
+left join movies m on m.director_id = d.id
+left join series s on s.director_id = d.id
+order by d.name_director;
